@@ -87,3 +87,10 @@ rasa/keys
 /results/
 # Local Netlify folder
 .netlify
+pip_failure.shell.txt
+rvm-check_domain_loader.ipynb
+rvm-tokenizer.ipynb
+train_by_hand_jupyter.ipynb
+rvm-init/
+rvm-tempdir/
+
