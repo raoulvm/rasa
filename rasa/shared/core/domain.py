@@ -226,14 +226,15 @@ class Domain:
     def from_directory(cls, path: Text) -> "Domain":
         """Loads and merges multiple domain files recursively from a directory tree."""
 
-        domain = Domain.empty()
+        domain_dict = {}
         for root, _, files in os.walk(path, followlinks=True):
             for file in files:
                 full_path = os.path.join(root, file)
                 if Domain.is_domain_file(full_path):
-                    other = Domain.from_file(full_path)
-                    domain = other.merge(domain)
-
+                    _ = Domain.from_file(full_path) # does the validation here only
+                    other_dict = rasa.shared.utils.io.read_yaml(rasa.shared.utils.io.read_file(full_path))
+                    domain_dict = Domain.merge_domain_dicts(domain_dict, other_dict)
+        domain = Domain.from_dict(domain_dict)
         return domain
 
     def merge(self, domain: Optional["Domain"], override: bool = False) -> "Domain":
@@ -304,6 +305,76 @@ class Domain:
             combined[key] = merge_dicts(combined[key], domain_dict[key], override)
 
         return self.__class__.from_dict(combined)
+    
+    @staticmethod
+    def merge_domain_dicts(domain1, domain2, override: bool = False):
+        """Merge this domain with another one, combining their attributes.
+
+        List attributes like ``intents`` and ``actions`` will be deduped
+        and merged. Single attributes will be taken from `domain1` unless
+        override is `True`, in which case they are taken from `domain`."""
+
+        if not domain2: # or domain2.is_empty():
+            return domain1
+
+        if domain1 == {}: #.is_empty():
+            return domain2
+
+        domain_dict = domain2 #.as_dict(mergeflag=True)
+        combined = domain1 #.as_dict(mergeflag=True)
+
+        def merge_dicts(
+            tempDict1: Dict[Text, Any],
+            tempDict2: Dict[Text, Any],
+            override_existing_values: bool = False,
+        ) -> Dict[Text, Any]:
+
+            if override_existing_values:
+                merge_dicts, b = tempDict1.copy(), tempDict2.copy()
+
+            else:
+                merge_dicts, b = tempDict2.copy(), tempDict1.copy()
+
+            merge_dicts.update(b)
+            return merge_dicts
+
+        def merge_lists(list1: List[Any], list2: List[Any]) -> List[Any]:
+            return sorted(list(set(list1 + list2)))
+
+        def merge_lists_of_dicts(
+            dict_list1: List[Dict],
+            dict_list2: List[Dict],
+            override_existing_values: bool = False,
+        ) -> List[Dict]:
+            dict1 = {(sorted(list(i.keys()))[0] if isinstance(i, dict) else i): i for i in dict_list1}
+            dict2 = {(sorted(list(i.keys()))[0] if isinstance(i, dict) else i): i for i in dict_list2}
+            merged_dicts = merge_dicts(dict1, dict2, override_existing_values)
+            return list(merged_dicts.values())
+
+        if override:
+            config = domain_dict["config"]
+            for key, val in config.items():
+                combined["config"][key] = val
+
+        if override or domain1.get("session_config") == SessionConfig.default():
+            combined[SESSION_CONFIG_KEY] = domain_dict[SESSION_CONFIG_KEY]
+
+        combined[KEY_INTENTS] = merge_lists_of_dicts(
+            combined[KEY_INTENTS], domain_dict[KEY_INTENTS], override
+        )
+
+        # remove existing forms from new actions
+        for form in combined.get(KEY_FORMS,[]):
+            if form in domain_dict.get(KEY_ACTIONS,[]):
+                domain_dict[KEY_ACTIONS].remove(form)
+
+        for key in [KEY_ENTITIES, KEY_ACTIONS, KEY_E2E_ACTIONS]:
+            combined[key] = merge_lists(combined.get(key,[]), domain_dict.get(key,[]))
+
+        for key in [KEY_FORMS, KEY_RESPONSES, KEY_SLOTS]:
+            combined[key] = merge_dicts(combined.get(key,{}), domain_dict.get(key,{}), override)
+
+        return combined #self.__class__.from_dict(combined)
 
     @staticmethod
     def collect_slots(slot_dict: Dict[Text, Any]) -> List[Slot]:
