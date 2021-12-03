@@ -54,12 +54,12 @@ class LexicalSyntacticFeaturizer(SparseFeaturizer):
     function_dict: Dict[Text, Callable[[Token], Union[bool, Text, None]]] = {
         "low": lambda token: token.text.islower(),
         "title": lambda token: token.text.istitle(),
-        "prefix5": lambda token: token.text[:5],
-        "prefix2": lambda token: token.text[:2],
-        "suffix5": lambda token: token.text[-5:],
-        "suffix3": lambda token: token.text[-3:],
-        "suffix2": lambda token: token.text[-2:],
-        "suffix1": lambda token: token.text[-1:],
+        "prefix5": lambda token: token.text[:5].lower(),
+        "prefix2": lambda token: token.text[:2].lower(),
+        "suffix5": lambda token: token.text[-5:].lower(),
+        "suffix3": lambda token: token.text[-3:].lower(),
+        "suffix2": lambda token: token.text[-2:].lower(),
+        "suffix1": lambda token: token.text[-1:].lower(),
         "pos": lambda token: token.data.get(POS_TAG_KEY)
         if POS_TAG_KEY in token.data
         else None,
