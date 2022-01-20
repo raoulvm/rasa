@@ -72,7 +72,7 @@ from rasa.shared.nlu.constants import (
 from rasa.shared.nlu.training_data.message import Message
 from rasa.shared.nlu.training_data.training_data import TrainingData
 from rasa.model_testing import compare_nlu_models
-from rasa.utils.tensorflow.constants import EPOCHS
+from rasa.utils.tensorflow.constants import EPOCHS, ENTITY_RECOGNITION
 
 # https://github.com/pytest-dev/pytest-asyncio/issues/68
 # this event_loop is used by pytest-asyncio, and redefining it
@@ -220,7 +220,7 @@ def test_determine_token_labels_with_extractors():
     label = determine_token_labels(
         CH_correct_segmentation[0],
         [CH_correct_entity, CH_wrong_entity],
-        {SpacyEntityExtractor.__name__, MitieEntityExtractor.__name__,},
+        {SpacyEntityExtractor.__name__, MitieEntityExtractor.__name__},
     )
     assert label == "direction"
 
@@ -396,9 +396,7 @@ async def test_run_evaluation_with_regex_message(mood_agent: Agent, tmp_path: Pa
     )
 
 
-async def test_eval_data(
-    tmp_path: Path, project: Text, trained_rasa_model: Text,
-):
+async def test_eval_data(tmp_path: Path, project: Text, trained_rasa_model: Text):
     config_path = os.path.join(project, "config.yml")
     data_importer = TrainingDataImporter.load_nlu_importer_from_config(
         config_path,
@@ -587,6 +585,50 @@ async def test_run_cv_evaluation_with_response_selector():
     assert len(entity_results.test[diet_name]["F1-score"]) == n_folds
     for extractor_evaluation in entity_results.evaluation.values():
         assert all(key in extractor_evaluation for key in ["errors", "report"])
+
+
+@pytest.mark.timeout(
+    280, func_only=True
+)  # these can take a longer time than the default timeout
+async def test_run_cv_evaluation_lookup_tables():
+    td = rasa.shared.nlu.training_data.loading.load_data(
+        "data/test/demo-rasa-lookup-ents.yml"
+    )
+
+    nlu_config = {
+        "language": "en",
+        "pipeline": [
+            {"name": "WhitespaceTokenizer"},
+            {"name": "CountVectorsFeaturizer"},
+            {"name": "DIETClassifier", EPOCHS: 1, ENTITY_RECOGNITION: False},
+            {"name": "RegexEntityExtractor", "use_lookup_tables": True},
+        ],
+    }
+
+    n_folds = 2
+    intent_results, entity_results, response_selection_results = await cross_validate(
+        td,
+        n_folds,
+        nlu_config,
+        successes=False,
+        errors=False,
+        disable_plotting=True,
+        report_as_dict=True,
+    )
+
+    regex_extractor_name = "RegexEntityExtractor"
+    assert regex_extractor_name in entity_results.test
+
+    assert len(entity_results.test[regex_extractor_name]["Accuracy"]) == n_folds
+    assert len(entity_results.test[regex_extractor_name]["Precision"]) == n_folds
+    assert len(entity_results.test[regex_extractor_name]["F1-score"]) == n_folds
+
+    # All entities in the test set appear in the lookup table,
+    # so should get perfect scores
+    for fold in range(n_folds):
+        assert entity_results.test[regex_extractor_name]["Accuracy"][fold] == 1.0
+        assert entity_results.test[regex_extractor_name]["Precision"][fold] == 1.0
+        assert entity_results.test[regex_extractor_name]["F1-score"][fold] == 1.0
 
 
 def test_intent_evaluation_report(tmp_path: Path):
@@ -973,7 +1015,7 @@ async def test_nlu_comparison(
     monkeypatch.setattr(
         sys.modules["rasa.nlu.test"],
         "get_eval_data",
-        AsyncMock(return_value=(1, None, (None,),)),
+        AsyncMock(return_value=(1, None, (None,))),
     )
     monkeypatch.setattr(
         sys.modules["rasa.nlu.test"],
@@ -1177,7 +1219,7 @@ class ConstantProcessor:
         self.prediction = prediction_to_return
 
     async def parse_message(
-        self, message: UserMessage, only_output_properties: bool = True,
+        self, message: UserMessage, only_output_properties: bool = True
     ) -> Dict[Text, Any]:
         return self.prediction
 
