@@ -111,12 +111,20 @@ class Slot:
     @value.setter
     def value(self, value: Any) -> None:
         """Sets the slot's value."""
+        if value == self.initial_value:
+            self._value = value
+            self._has_been_set = False
+            return
         self._value = value
         self._has_been_set = True
+        logger.debug(
+            f"SETTING {self.name=} {self._has_been_set=} because of requested {value=}"
+        )
 
     @property
     def has_been_set(self) -> bool:
         """Indicates if the slot's value has been set."""
+        logger.debug(f"RETURNING {self.name=} {self._has_been_set=} {self._value=}")
         return self._has_been_set
 
     def __str__(self) -> Text:

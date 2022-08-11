@@ -78,12 +78,21 @@ class TrackerFeaturizer:
         Returns:
             Trackers as states.
         """
-        return tracker.past_states(
+        logger.warning(
+            f"rasa.core.featurizer.TrackerFeaturizer._create_states({omit_unset_slots=}) started"
+        )
+        a = tracker.past_states(
             domain,
             omit_unset_slots=omit_unset_slots,
             ignore_rule_only_turns=ignore_rule_only_turns,
             rule_only_data=rule_only_data,
         )
+
+        logger.warning(
+            f"rasa.core.featurizer.TrackerFeaturizer._create_states({omit_unset_slots=} {a})"
+        )
+
+        return a
 
     def _featurize_states(
         self,
@@ -789,6 +798,9 @@ class MaxHistoryTrackerFeaturizer(TrackerFeaturizer):
             desc="Processed trackers",
             disable=rasa.shared.utils.io.is_logging_disabled(),
         )
+        logger.debug(
+            f"MaxHistoryTrackerFeaturizer training_states_labels_and_entities {omit_unset_slots=}"
+        )
         for tracker in pbar:
 
             for states, label, entities in self._extract_examples(
@@ -803,6 +815,10 @@ class MaxHistoryTrackerFeaturizer(TrackerFeaturizer):
                     if hashed in hashed_examples:
                         continue
                     hashed_examples.add(hashed)
+
+                logger.debug(
+                    f"MaxHistoryTrackerFeaturizer {omit_unset_slots=} {states=}"
+                )
 
                 example_states.append(states)
                 example_labels.append(label)
@@ -837,6 +853,10 @@ class MaxHistoryTrackerFeaturizer(TrackerFeaturizer):
         """
         tracker_states = self._create_states(
             tracker, domain, omit_unset_slots=omit_unset_slots
+        )
+
+        logger.debug(
+            f"rasa.core.featurizer.tracker_featurizer.MaxHistoryTrackerFeaturizer._extract_examples {omit_unset_slots=} {tracker_states=}"
         )
         events = tracker.applied_events()
 

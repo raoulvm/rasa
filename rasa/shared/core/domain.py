@@ -1282,6 +1282,9 @@ class Domain:
             # Note that this condition checks if the slot itself is None. An unset slot
             # will be a Slot object and its `value` attribute will be None.
             if slot is not None and slot.as_feature():
+                logger.debug(
+                    f"{slot_name=} {omit_unset_slots=} {slot.has_been_set=} {slot.as_feature()=}"
+                )
                 if omit_unset_slots and not slot.has_been_set:
                     continue
                 if slot.value == rasa.shared.core.constants.SHOULD_NOT_BE_SET:
@@ -1348,7 +1351,7 @@ class Domain:
         """
         state = {
             rasa.shared.core.constants.USER: self._get_user_sub_state(tracker),
-            rasa.shared.core.constants.SLOTS: self._get_slots_sub_state(
+            rasa.shared.core.constants.SLOTS: self._get_slots_sub_state(  # TODO check here
                 tracker, omit_unset_slots=omit_unset_slots
             ),
             rasa.shared.core.constants.PREVIOUS_ACTION: self._get_prev_action_sub_state(
@@ -1358,6 +1361,7 @@ class Domain:
                 tracker
             ),
         }
+        logger.warning(f"get active state: {state}")
         return self._clean_state(state)
 
     @staticmethod
@@ -1420,6 +1424,9 @@ class Domain:
         Return:
             A list of states.
         """
+        logger.warning(
+            f"rasa.shared.core.domain.Domain.states_for_tracker_history({omit_unset_slots=})"
+        )
         states = []
         last_ml_action_sub_state = None
         turn_was_hidden = False
@@ -1442,6 +1449,7 @@ class Domain:
                     continue
 
             state = self.get_active_state(tr, omit_unset_slots=omit_unset_slots)
+            logger.debug(f"Domain.states_for_tracker_history {state=}")
 
             if ignore_rule_only_turns:
                 # clean state from only rule features

@@ -249,9 +249,7 @@ class DialogueStateTracker:
             "latest_action_name": self.latest_action_name,
         }
 
-    def _events_for_verbosity(
-        self, event_verbosity: EventVerbosity
-    ) -> Optional[List[Event]]:
+    def _events_for_verbosity(self, event_verbosity: EventVerbosity) -> Optional[List[Event]]:
         if event_verbosity == EventVerbosity.ALL:
             return list(self.events)
         if event_verbosity == EventVerbosity.AFTER_RESTART:
@@ -284,9 +282,7 @@ class DialogueStateTracker:
         """
         return frozenset(
             {
-                key: frozenset(values.items())
-                if isinstance(values, Dict)
-                else frozenset(values)
+                key: frozenset(values.items()) if isinstance(values, Dict) else frozenset(values)
                 for key, values in state.items()
             }.items()
         )
@@ -311,6 +307,11 @@ class DialogueStateTracker:
         Returns:
             A list of states
         """
+        logger.error(
+            f"rasa.shared.core.trackers.DialogueStateTracker.past_states({omit_unset_slots=})"
+        )
+        # raise NotImplementedError()
+        print("YEAH")
         return domain.states_for_tracker_history(
             self,
             omit_unset_slots=omit_unset_slots,
@@ -489,9 +490,7 @@ class DialogueStateTracker:
             The events applied to the tracker.
         """
         loop_names = [
-            event.name
-            for event in self.events
-            if isinstance(event, ActiveLoop) and event.name
+            event.name for event in self.events if isinstance(event, ActiveLoop) and event.name
         ]
 
         applied_events = []
@@ -515,9 +514,7 @@ class DialogueStateTracker:
                     event.action_name, applied_events
                 )
             ):
-                self._undo_till_previous_loop_execution(
-                    event.action_name, applied_events
-                )
+                self._undo_till_previous_loop_execution(event.action_name, applied_events)
             else:
                 applied_events.append(event)
 
@@ -570,8 +567,7 @@ class DialogueStateTracker:
         # When actual users are talking to the action has to return an
         # `ActionExecutionRejected` in order to enter an unhappy path.
         loop_was_rejected_previously = (
-            isinstance(event, ActionExecutionRejected)
-            and event.action_name == loop_action_name
+            isinstance(event, ActionExecutionRejected) and event.action_name == loop_action_name
         )
         # During the policy training there are no `ActionExecutionRejected` events
         # which let us see whether we are within an unhappy path. Hence, we check if a
@@ -593,9 +589,7 @@ class DialogueStateTracker:
             if isinstance(e, ActionExecuted) and e.action_name == loop_action_name:
                 break
 
-            if isinstance(
-                e, (ActionExecuted, UserUttered, DefinePrevUserUtteredFeaturization),
-            ):
+            if isinstance(e, (ActionExecuted, UserUttered, DefinePrevUserUtteredFeaturization),):
                 del done_events[-1 - offset]
             else:
                 # Remember events which aren't unfeaturized to get the index right
@@ -617,8 +611,7 @@ class DialogueStateTracker:
 
         if not isinstance(dialogue, Dialogue):
             raise ValueError(
-                f"story {dialogue} is not of type Dialogue. "
-                f"Have you deserialized it?"
+                f"story {dialogue} is not of type Dialogue. " f"Have you deserialized it?"
             )
 
         self._reset()
@@ -676,10 +669,7 @@ class DialogueStateTracker:
                 self.update(e)
 
     def update_with_events(
-        self,
-        new_events: List[Event],
-        domain: Optional[Domain],
-        override_timestamp: bool = True,
+        self, new_events: List[Event], domain: Optional[Domain], override_timestamp: bool = True,
     ) -> None:
         """Adds multiple events to the tracker.
 
@@ -703,9 +693,7 @@ class DialogueStateTracker:
         from rasa.shared.core.training_data.structures import Story
 
         story_name = (
-            f"{self.sender_id} ({self.sender_source})"
-            if include_source
-            else self.sender_id
+            f"{self.sender_id} ({self.sender_source})" if include_source else self.sender_id
         )
         return Story.from_events(self.applied_events(), story_name)
 
@@ -733,9 +721,7 @@ class DialogueStateTracker:
 
     def export_stories_to_file(self, export_path: Text = "debug_stories.yml") -> None:
         """Dump the tracker as a story to a file."""
-        from rasa.shared.core.training_data.story_writer.yaml_story_writer import (
-            YAMLStoryWriter,
-        )
+        from rasa.shared.core.training_data.story_writer.yaml_story_writer import YAMLStoryWriter
 
         append = os.path.exists(export_path)
 
@@ -873,9 +859,7 @@ class DialogueStateTracker:
 
         Returns: name of the previously executed action or text of e2e action
         """
-        return self.latest_action.get(ACTION_NAME) or self.latest_action.get(
-            ACTION_TEXT
-        )
+        return self.latest_action.get(ACTION_NAME) or self.latest_action.get(ACTION_TEXT)
 
 
 def get_active_loop_name(state: State) -> Optional[Text]:
@@ -887,10 +871,7 @@ def get_active_loop_name(state: State) -> Optional[Text]:
     Return:
         the name of active loop or None
     """
-    if (
-        not state.get(ACTIVE_LOOP)
-        or state[ACTIVE_LOOP].get(LOOP_NAME) == SHOULD_NOT_BE_SET
-    ):
+    if not state.get(ACTIVE_LOOP) or state[ACTIVE_LOOP].get(LOOP_NAME) == SHOULD_NOT_BE_SET:
         return
 
     return state[ACTIVE_LOOP].get(LOOP_NAME)
@@ -929,10 +910,7 @@ def get_trackers_for_conversation_sessions(
 
     return [
         DialogueStateTracker.from_events(
-            tracker.sender_id,
-            evts,
-            tracker.slots.values(),
-            sender_source=tracker.sender_source,
+            tracker.sender_id, evts, tracker.slots.values(), sender_source=tracker.sender_source,
         )
         for evts in split_conversations
     ]

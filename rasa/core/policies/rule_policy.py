@@ -727,11 +727,18 @@ class RulePolicy(MemoizationPolicy):
         story_trackers: List[TrackerWithCachedStates],
         domain: Domain,
     ) -> None:
+        logger.info(
+            "Rule Policy Train: _create_lookup_from_trackers started ===================="
+        )
         (
             rule_trackers_as_states,
             rule_trackers_as_actions,
         ) = self.featurizer.training_states_and_labels(
             rule_trackers, domain, omit_unset_slots=True
+        )
+
+        logger.info(
+            f"rule states {rule_trackers_as_states} +++++++++++++++++++++++++++++++++++"
         )
 
         rules_lookup = self._create_lookup_from_states(
@@ -761,6 +768,9 @@ class RulePolicy(MemoizationPolicy):
             RULES_FOR_LOOP_UNHAPPY_PATH
         ] = self._create_loop_unhappy_lookup_from_states(
             trackers_as_states, trackers_as_actions
+        )
+        logger.info(
+            "Rule Policy Train: _create_lookup_from_trackers ENDED ----------------------"
         )
 
     def train(
