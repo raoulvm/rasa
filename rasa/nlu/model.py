@@ -24,6 +24,7 @@ from rasa.shared.nlu.constants import (
     INTENT,
     INTENT_NAME_KEY,
     PREDICTED_CONFIDENCE_KEY,
+    METADATA,  # new
 )
 from rasa.shared.nlu.training_data.training_data import TrainingData
 from rasa.shared.nlu.training_data.message import Message
@@ -446,6 +447,7 @@ class Interpreter:
         text: Text,
         time: Optional[datetime.datetime] = None,
         only_output_properties: bool = True,
+        metadata: Dict[str, Any] = None,  # new
     ) -> Dict[Text, Any]:
         """Parse the input text, classify it and return pipeline result.
 
@@ -463,7 +465,7 @@ class Interpreter:
         timestamp = int(time.timestamp()) if time else None
         data = self.default_output_attributes()
         data[TEXT] = text
-
+        data[METADATA] = metadata
         message = Message(data=data, time=timestamp)
 
         for component in self.pipeline:
