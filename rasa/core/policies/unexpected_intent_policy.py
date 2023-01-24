@@ -92,6 +92,7 @@ from rasa.utils.tensorflow.constants import (
     SEVERITY_KEY,
     QUERY_INTENT_KEY,
     NAME,
+    USE_GPU,
 )
 from rasa.utils.tensorflow import layers
 from rasa.utils.tensorflow.model_data import (
@@ -252,6 +253,9 @@ class UnexpecTEDIntentPolicy(TEDPolicy):
         # hence will result in lesser number of `action_unlikely_intent`
         # triggers. Acceptable values are between 0.0 and 1.0 (inclusive).
         TOLERANCE: 0.0,
+        # This parameter defines whether a GPU (if available) will be
+        # used during training. By default, GPU will be used if its available.
+        USE_GPU: True,
     }
 
     def __init__(
@@ -488,11 +492,11 @@ class UnexpecTEDIntentPolicy(TEDPolicy):
         def _compile_metadata_for_label(
             label_name: Text, similarity_score: float, threshold: Optional[float],
         ) -> "RankingCandidateMetadata":
-            severity = threshold - similarity_score if threshold else None
+            severity = float(threshold - similarity_score) if threshold else None
             return {
                 NAME: label_name,
-                SCORE_KEY: similarity_score,
-                THRESHOLD_KEY: threshold,
+                SCORE_KEY: float(similarity_score),
+                THRESHOLD_KEY: float(threshold) if threshold else None,
                 SEVERITY_KEY: severity,
             }
 
