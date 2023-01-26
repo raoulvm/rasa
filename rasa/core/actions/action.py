@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+import os
 from typing import List, Text, Optional, Dict, Any, TYPE_CHECKING
 
 import aiohttp
@@ -61,7 +62,17 @@ if TYPE_CHECKING:
     from rasa.core.channels.channel import OutputChannel
     from rasa.shared.core.events import IntentPrediction
 
+
 logger = logging.getLogger(__name__)
+ENV_ACTION_OMIT_DOMAIN = "ACTION_OMIT_DOMAIN"
+
+try:
+    OMIT_DOMAIN = int(os.environ.get(ENV_ACTION_OMIT_DOMAIN, "0"))
+except ValueError:
+    # if it is not "0" or empty, assume there is a value that is true-ish
+    OMIT_DOMAIN = 1
+
+logger.debug(f"OMIT_DOMAIN={OMIT_DOMAIN}")
 
 
 def default_actions(action_endpoint: Optional[EndpointConfig] = None) -> List["Action"]:
@@ -576,11 +587,18 @@ class RemoteAction(Action):
 
         tracker_state = tracker.current_state(EventVerbosity.ALL)
 
+        if OMIT_DOMAIN:
+            dom = {}
+            logger.debug("Omitting Domain Info")
+        else:
+            dom = domain.as_dict()
+            logger.debug("INCLUDING Domain Info !!!")
+
         return {
             "next_action": self._name,
             "sender_id": tracker.sender_id,
             "tracker": tracker_state,
-            "domain": domain.as_dict(),
+            "domain": dom,
             "version": rasa.__version__,
         }
 
