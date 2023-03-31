@@ -658,11 +658,16 @@ class RemoteAction(Action):
             "version": rasa.__version__,
         }
 
-        if (
-            not self._is_selective_domain_enabled()
-            or domain.does_custom_action_explicitly_need_domain(self.name())
+        if not self._is_selective_domain_enabled() or (
+            details := domain.does_custom_action_explicitly_need_domain(self.name())
         ):
-            result["domain"] = domain.as_dict()
+            if details:
+                domain_details = {
+                    k: v for k, v in domain.as_dict().items() if k in details
+                }
+            else:
+                domain_details = domain.as_dict()
+            result["domain"] = domain_details
 
         return result
 

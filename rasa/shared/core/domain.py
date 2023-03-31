@@ -1861,7 +1861,9 @@ class Domain:
 
         return (total_mappings, custom_mappings, conditional_mappings)
 
-    def does_custom_action_explicitly_need_domain(self, action_name: Text) -> bool:
+    def does_custom_action_explicitly_need_domain(
+        self, action_name: Text
+    ) -> Union[Set[Text], bool]:
         """Assert if action has explicitly stated that it needs domain.
 
         Args:
@@ -1871,7 +1873,9 @@ class Domain:
             True if action has explicitly stated that it needs domain.
             Otherwise, it returns false.
         """
-        return action_name in self._actions_which_explicitly_need_domain
+        return (
+            self._actions_which_explicitly_need_domain.get(action_name, False) or False
+        )
 
     def __repr__(self) -> Text:
         """Returns text representation of object."""
@@ -1899,8 +1903,18 @@ class Domain:
     @staticmethod
     def _collect_actions_which_explicitly_need_domain(
         actions: List[Union[Text, Dict[Text, Any]]]
-    ) -> List[Text]:
-        action_names: List[Text] = []
+    ) -> Dict[Text, Set[Text]]:
+        action_names: Dict[Text, Set[Text]] = {}
+
+        DOMAIN_DETAILS = set(
+            [  # move to constants, only here for demo
+                "forms",
+                "entities",
+                "slots",
+                "intents",
+                "responses",
+            ]
+        )
 
         for action in actions:
             if isinstance(action, dict):
@@ -1909,10 +1923,19 @@ class Domain:
                         ACTION_SHOULD_SEND_DOMAIN, False
                     )
                     if should_send_domain:
-                        action_names += [action_name]
+                        if isinstance(should_send_domain, bool):
+                            action_names[action_name] = DOMAIN_DETAILS
+                        else:
+                            action_names[action_name] = set(
+                                should_send_domain
+                            )  # use a set to avoid duplicates
 
-            elif action.startswith("validate_"):
-                action_names += [action]
+            if isinstance(action, str) and action.startswith("validate_"):
+                action_names.setdefault(action, set()).add("forms")
+            elif isinstance(action, dict) and (
+                action_name := list(action.keys())[0]
+            ).startswith("validate_"):
+                action_names.setdefault(action_name, set()).add("forms")
 
         return action_names
 
