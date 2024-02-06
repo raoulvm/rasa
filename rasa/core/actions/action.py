@@ -644,7 +644,6 @@ class ActionDeactivateLoop(Action):
 
 class RemoteAction(Action):
     def __init__(self, name: Text, action_endpoint: Optional[EndpointConfig]) -> None:
-
         self._name = name
         self.action_endpoint = action_endpoint
 
@@ -669,7 +668,13 @@ class RemoteAction(Action):
             not self._is_selective_domain_enabled()
             or domain.does_custom_action_explicitly_need_domain(self.name())
         ):
-            result["domain"] = domain.as_dict()
+            # ALWAYS REMOVE RESONSES
+            result["domain"] = {
+                subkey: value
+                for subkey, value in domain.as_dict().items()
+                if subkey != "responses"
+            }
+            logger.debug(f"sending domain keys {list(result['domain'].keys())}")
 
         return result
 
